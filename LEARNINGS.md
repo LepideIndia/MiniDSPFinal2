@@ -1,0 +1,22 @@
+# Learnings
+
+- The Lepidus design system is hosted, not local. The `llms.txt` file and `component-manifest.json` are the source of truth for classes and tokens. Do not invent either.
+- Whole-token matching with regex lookbehind/lookahead (treating digits joined by one space/hyphen as one run) is simpler and safer than post-filtering partial matches.
+- Match spans, not strings: store `{type,start,end}` and compute the mask from the slice only for the first occurrence, so raw values are never kept in results.
+- Run `next build` once before `tsc --noEmit` on a fresh scaffold: it writes `next-env.d.ts` and the `jsx` setting.
+- Enforce upload limits on bytes actually read, not `Content-Length` or `file.size`: stream the body with a cap, then hand the bytes to `new Response(bytes).formData()`. Content-Length is only an early shortcut.
+- A Web `Request` with a `FormData` body works in Vitest, so route handlers can be tested without starting a server. Streaming bodies need `duplex: "half"`.
+- Digits joined by comma/newline/tab/semicolon are already separate runs in the "one space or hyphen" rule, so CSV cells needed no detector change. Test the limit (single space) explicitly so it stays documented.
+- This Next.js (16) renamed `middleware.ts` to `proxy.ts` (export `proxy`, Node runtime) and `cookies()` is async. `AGENTS.md` says to read `node_modules/next/dist/docs/` first; it saved a wrong guess.
+- Vitest sets `NODE_ENV=test`, and Next's `loadEnvConfig` skips `.env.local` in test mode. A live test needs its own env loader, otherwise it silently reports "variables missing".
+- Vitest prints nothing for a file whose tests are all skipped. Print a "NOT RUN" notice from a `globalSetup` (main process), so a skip is never mistaken for a pass.
+- When a Supabase project needs email confirmation, scripted sign-ups with fake addresses cannot sign in. Create test users in the dashboard with "Auto Confirm User".
+- Put database writes behind one `SECURITY DEFINER` function with `search_path = ''` and make users SELECT-only: it gives atomicity (one call, one transaction) and removes whole classes of RLS bypass tests. Prove it with a real two-user run, not by reading the SQL.
+- A PowerShell `curl.exe -d` with JSON can lose its quotes; use `--data-binary "@file"` for probes.
+- Check the UI in a real browser early: unit tests passed while the real page showed two defects they could not see (design-system tables truncated filenames with "…"; a six-column table crushed to one character per line at 360px). Test assertions on roles and names did catch a genuine accessibility flaw (two landmarks sharing one name).
+- Design-system components can be deliberately opinionated (`lp-table` is single-line with ellipsis). Read the generated CSS rule before overriding, keep the override narrow and documented, and check what actually scrolls (here the `lp-table` wrapper, not my own).
+- Measure computed focus/transition styles only after transitions finish (wait ~800ms); reading immediately showed "no focus ring" for a design that has one.
+- Keep pages thin: an async server page fetches data and passes a plain `result` prop to a synchronous view component. The view can then be tested with Testing Library (empty/error/filtered) without mocking the framework.
+- Never run `next build` while `next dev` is running: both use `.next`. Stop the dev server first (it recovered here, but not safely).
+- In PowerShell, `@(@(a,b))` flattens to a single pair, so a bulk find/replace over "one pair" lists silently misbehaved and corrupted files. Use the edit tool for single replacements.
+- Mock only at the boundary you own. Validating rows into types at the data layer lets the UI trust its inputs and gives a single, generic error state.
